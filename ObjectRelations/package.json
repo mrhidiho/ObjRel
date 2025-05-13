@@ -1,0 +1,28 @@
+{
+  "name": "objectrelations",
+  "version": "1.0.0",
+  "description": "skills test",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "@prisma/client": "^5.13.0",
+    "zod": "^3.23.8",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "typescript": "^5.4.5",
+    "prisma": "^5.13.0",
+    "@types/node": "^20.11.29",
+    "@types/cors": "^2.8.17"
+  }
+}

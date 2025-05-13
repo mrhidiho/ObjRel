@@ -1,0 +1,8 @@
+{
+  "name": "objrel02",
+  "version": "1.0.0",
+  "dependencies": {
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {}
+}

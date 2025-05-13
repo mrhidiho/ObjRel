@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Company & Contact Admin</title>
+<style>
+  body{font-family:sans-serif;margin:2rem;max-width:1200px}
+  label{display:block;margin:.4rem 0 .1rem}
+  input,select,button{padding:.4rem;margin-bottom:.5rem}
+  .contact{margin:.4rem 0}
+  .grid{display:flex;gap:2rem;flex-wrap:wrap}
+  .box{border:1px solid #ccc;padding:1rem;border-radius:6px;min-width:260px}
+</style>
+</head>
+<body>
+<h1>Company & Contact Browser</h1>
+
+<label for="companySelect"><strong>Select a Company to show that Companies Contacts</strong></label>
+<select id="companySelect"><option value="">-- choose --</option></select>
+
+<h2>Search</h2>
+<input type="text" id="searchInput" placeholder="Search contacts, phone, or company(col)">
+
+<h2>Contacts</h2>
+<div id="tree"></div>
+
+<div class="grid">
+  <div class="box">
+    <h3>Add Company</h3>
+    <label>Company Name:
+      <input type="text" id="newCompanyName">
+    </label>
+    <button id="addCompanyBtn">Add Company</button>
+  </div>
+
+  <div class="box">
+    <h3>Edit Company</h3>
+    <label>Select Company:
+      <select id="editCompanySelect"></select>
+    </label>
+    <label>Company Name:
+      <input type="text" id="editCompanyName">
+    </label>
+    <button id="saveCompanyBtn">Save Company</button>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="box">
+    <h3>Add Contact</h3>
+    <label>First Name*:
+      <input type="text" id="firstName">
+    </label>
+    <label>Last Name*:
+      <input type="text" id="lastName">
+    </label>
+    <label>Email:
+      <input type="email" id="email">
+    </label>
+    <label>Phone:
+      <input type="text" id="phone">
+    </label>
+    <label>Company (Their Company):
+      <input type="text" id="mcompany">
+    </label>
+    <label>Company (link):
+      <select id="companySelectAdd"></select>
+    </label>
+    <button id="addContactBtn">Add Contact</button>
+  </div>
+
+  <div class="box">
+    <h3>Edit Contact</h3>
+    <label>Select Company:
+      <select id="editContactCompanySelect"></select>
+    </label>
+    <label>Select Contact:
+      <select id="editContactSelect"></select>
+    </label>
+    <label>First Name*:
+      <input type="text" id="editFirstName">
+    </label>
+    <label>Last Name*:
+      <input type="text" id="editLastName">
+    </label>
+    <label>Email:
+      <input type="email" id="editEmail">
+    </label>
+    <label>Phone:
+      <input type="text" id="editPhone">
+    </label>
+    <label>Company (Their Company):
+      <input type="text" id="editmCompany">
+    </label>
+    <button id="saveContactBtn">Save Contact</button>
+  </div>
+</div>
+
+<script>
+async function fetchJSON(url, opts){
+  const res = await fetch(url, opts);
+  if(!res.ok){ const msg = await res.text(); alert('Error: '+msg); throw new Error(msg);}
+  return res.json();
+}
+
+async function loadCompanies(){
+  const companies = await fetchJSON('/companies');
+  window._companies = companies;
+  const sels=['companySelect','companySelectAdd','editCompanySelect','editContactCompanySelect'];
+  sels.forEach(id=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML='<option value="">-- choose --</option>';
+    companies.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.id; opt.textContent=c.name;
+      sel.appendChild(opt.cloneNode(true));
+    });
+  });
+}
+
+function renderContacts(list){
+  const tree=document.getElementById('tree'); tree.innerHTML='';
+  const ul=document.createElement('ul');
+  list.forEach(ct=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<div class="contact"><strong>${ct.firstName} ${ct.lastName}</strong><br>
+      <em>${ct.mcompany||''}</em><br>${ct.phone||''} ${ct.email? ' - '+ct.email:''}</div>`;
+    ul.appendChild(li);
+  });
+  tree.appendChild(ul);
+}
+
+document.getElementById('companySelect').addEventListener('change', async e=>{
+  const id=e.target.value;
+  if(!id){document.getElementById('tree').innerHTML='';return;}
+  const data=await fetchJSON('/companies/'+id+'/tree');
+  renderContacts(data.contacts);
+});
+
+document.getElementById('searchInput').addEventListener('input', async e=>{
+  const q=e.target.value.trim().toLowerCase();
+  if(!q){document.getElementById('tree').innerHTML='';return;}
+  const contacts=await fetchJSON('/contacts');
+  const filtered=contacts.filter(c=>{
+    return c.firstName.toLowerCase().includes(q)||
+           c.lastName.toLowerCase().includes(q)||
+           (c.phone||'').includes(q)||
+           (c.mcompany||'').toLowerCase().includes(q);
+  });
+  renderContacts(filtered);
+});
+
+document.getElementById('addCompanyBtn').addEventListener('click', async ()=>{
+  const name=document.getElementById('newCompanyName').value.trim();
+  if(!name){alert('Enter name');return;}
+  await fetchJSON('/companies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  alert('Added'); document.getElementById('newCompanyName').value=''; await loadCompanies();
+});
+
+document.getElementById('saveCompanyBtn').addEventListener('click', async ()=>{
+  const id=document.getElementById('editCompanySelect').value;
+  const name=document.getElementById('editCompanyName').value.trim();
+  if(!id||!name){alert('select and edit');return;}
+  await fetchJSON('/companies/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  alert('Saved'); await loadCompanies();
+});
+document.getElementById('editCompanySelect').addEventListener('change',e=>{
+  const comp=window._companies.find(c=>c.id==e.target.value);
+  document.getElementById('editCompanyName').value=comp?comp.name:'';
+});
+
+document.getElementById('addContactBtn').addEventListener('click', async ()=>{
+  const data={
+    firstName:document.getElementById('firstName').value.trim(),
+    lastName:document.getElementById('lastName').value.trim(),
+    email:document.getElementById('email').value.trim(),
+    phone:document.getElementById('phone').value.trim(),
+    mcompany:document.getElementById('mcompany').value.trim(),
+    ...(document.getElementById('companySelectAdd').value ? { companyId: Number(document.getElementById('companySelectAdd').value) } : {})
+  };
+  if(!data.firstName||!data.lastName){alert('Names required');return;}
+  await fetchJSON('/contacts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  alert('Added'); ['firstName','lastName','email','phone','mcompany'].forEach(id=>document.getElementById(id).value='');
+});
+
+document.getElementById('editContactCompanySelect').addEventListener('change', async e=>{
+  const cid=e.target.value; const sel=document.getElementById('editContactSelect');
+  sel.innerHTML='<option value="">-- choose --</option>';
+  if(!cid) return;
+  const list=await fetchJSON('/contacts?companyId='+cid); window._curr=list;
+  list.forEach(c=>{
+    const opt=document.createElement('option');
+    opt.value=c.id; opt.textContent=c.firstName+' '+c.lastName;
+    sel.appendChild(opt);
+  });
+});
+document.getElementById('editContactSelect').addEventListener('change',e=>{
+  const ct=window._curr?.find(c=>c.id==e.target.value);
+  if(!ct) return;
+  document.getElementById('editFirstName').value=ct.firstName||'';
+  document.getElementById('editLastName').value=ct.lastName||'';
+  document.getElementById('editEmail').value=ct.email||'';
+  document.getElementById('editPhone').value=ct.phone||'';
+  document.getElementById('editmCompany').value=ct.mcompany||'';
+});
+document.getElementById('saveContactBtn').addEventListener('click', async ()=>{
+  const id=document.getElementById('editContactSelect').value;
+  if(!id){alert('select');return;}
+  const data={
+    firstName:document.getElementById('editFirstName').value.trim(),
+    lastName:document.getElementById('editLastName').value.trim(),
+    email:document.getElementById('editEmail').value.trim(),
+    phone:document.getElementById('editPhone').value.trim(),
+    mcompany:document.getElementById('editmCompany').value.trim()
+  };
+  await fetchJSON('/contacts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  alert('Saved'); await loadCompanies();
+});
+
+loadCompanies();
+</script>
+</body>
+</html>

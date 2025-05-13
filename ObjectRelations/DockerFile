@@ -1,0 +1,24 @@
+# Use Alpine; Prisma provides linux-musl binaries
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install openssl for Prisma engine
+RUN apk add --no-cache openssl
+
+# Copy package.json and prisma schema first for dependency caching
+COPY package.json ./
+COPY prisma ./prisma
+RUN npm install
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy the rest of the code
+COPY . .
+
+# Build typescript
+RUN npm run build
+
+EXPOSE 3001
+CMD ["node", "dist/index.js"]
